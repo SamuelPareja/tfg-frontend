@@ -1,79 +1,183 @@
-import { AppLayout } from "@/components/layout/AppLayout";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, LogOut, Mail, Shield, User } from "lucide-react";
+import { motion } from "framer-motion";
+
 import { NeuCard } from "@/components/ui/NeuCard";
 import { NeuButton } from "@/components/ui/NeuButton";
-import { NeuInput } from "@/components/ui/NeuInput";
-import { NeuBadge } from "@/components/ui/NeuBadge";
-import { FormResult } from "@/components/ui/FormResult";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AuthUser,
+  getCurrentUser,
+  logoutUser,
+} from "@/services/authService";
 
 export default function ProfilePage() {
-  return (
-    <AppLayout>
-      <div className="space-y-6 max-w-3xl">
-        <h1 className="text-2xl font-display font-bold">Perfil</h1>
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-        <NeuCard className="p-6">
-          <div className="flex items-center gap-5 mb-6">
-            <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center text-2xl font-display font-bold text-primary">U</div>
-            <div>
-              <div className="font-display font-bold text-lg">Usuario Demo</div>
-              <div className="text-sm text-muted-foreground">demo@quinia.com</div>
-              <NeuBadge variant="info" className="mt-1">Plan Pro</NeuBadge>
-            </div>
-          </div>
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <NeuInput label="Nombre" defaultValue="Usuario Demo" id="profile-name" />
-            <NeuInput label="Email" defaultValue="demo@quinia.com" id="profile-email" type="email" />
-          </div>
+  /**
+   * Carga los datos del usuario autenticado desde el backend.
+   *
+   * Endpoint usado:
+   * GET /api/auth/me
+   */
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch {
+        toast({
+          title: "Sesión no válida",
+          description: "Inicia sesión para ver tu perfil.",
+          variant: "destructive",
+        });
+
+        navigate("/auth");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [navigate, toast]);
+
+  /**
+   * Cierra la sesión local eliminando el token JWT.
+   */
+  const handleLogout = () => {
+    logoutUser();
+
+    toast({
+      title: "Sesión cerrada",
+      description: "Has salido correctamente de Aquinielator.",
+    });
+
+    navigate("/auth");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <NeuCard className="p-8">
+          <p className="text-muted-foreground">Cargando perfil...</p>
         </NeuCard>
-
-        <NeuCard className="p-6 space-y-4">
-          <h3 className="font-display font-semibold">Preferencias</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-muted-foreground mb-2 font-display uppercase tracking-wider">Perfil de riesgo</div>
-              <div className="flex gap-2">
-                {['Conservador', 'Equilibrado', 'Agresivo'].map((r, i) => (
-                  <button key={r} className={i === 1 ? 'neu-tab-active flex-1 py-2 rounded-lg text-xs font-display font-semibold' : 'neu-tab-inactive flex-1 py-2 rounded-lg text-xs font-display font-semibold'}>
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-2 font-display uppercase tracking-wider">Equipos favoritos</div>
-              <div className="flex gap-2 flex-wrap">
-                {['⚪ RMA', '🔵🔴 FCB', '🔴⚪ ATM', '🔵⚪ RSO'].map(t => (
-                  <span key={t} className="neu-inset px-3 py-1.5 rounded-lg text-xs font-medium">{t}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </NeuCard>
-
-        <NeuCard className="p-6 space-y-4">
-          <h3 className="font-display font-semibold">Historial de quinielas</h3>
-          <div className="space-y-2">
-            {[
-              { name: 'Quiniela Segura J30', hits: 11, status: 'active' },
-              { name: 'Quiniela Valor J30', hits: 9, status: 'active' },
-              { name: 'Quiniela Equilibrada J29', hits: 10, status: 'completed' },
-            ].map(q => (
-              <div key={q.name} className="neu-inset p-3 rounded-lg flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold">{q.name}</div>
-                  <div className="text-xs text-muted-foreground">{q.hits} aciertos</div>
-                </div>
-                <NeuBadge variant={q.status === 'active' ? 'info' : 'success'}>
-                  {q.status === 'active' ? 'Activa' : 'Completada'}
-                </NeuBadge>
-              </div>
-            ))}
-          </div>
-        </NeuCard>
-
-        <NeuButton variant="primary" size="lg">Guardar cambios</NeuButton>
       </div>
-    </AppLayout>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const displayName = user.full_name || user.username;
+
+  return (
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <NeuCard glow="primary" className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="neu-inset w-24 h-24 rounded-full flex items-center justify-center shrink-0">
+              <User className="w-12 h-12 text-primary" />
+            </div>
+
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-[0.3em] text-primary font-display mb-2">
+                Perfil de usuario
+              </p>
+
+              <h1 className="font-display text-3xl font-bold text-foreground">
+                {displayName}
+              </h1>
+
+              <p className="text-muted-foreground mt-1">
+                @{user.username}
+              </p>
+
+              <div className="flex flex-wrap gap-3 mt-4">
+                <div className="neu-inset rounded-xl px-4 py-2 flex items-center gap-2 text-sm">
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span>{user.email}</span>
+                </div>
+
+                <div className="neu-inset rounded-xl px-4 py-2 flex items-center gap-2 text-sm">
+                  <Shield className="w-4 h-4 text-accent" />
+                  <span>Rol {user.role}</span>
+                </div>
+
+                <div className="neu-inset rounded-xl px-4 py-2 flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-secondary" />
+                  <span>Cuenta activa</span>
+                </div>
+              </div>
+            </div>
+
+            <NeuButton variant="ghost" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Cerrar sesión
+            </NeuButton>
+          </div>
+        </NeuCard>
+      </motion.div>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        <NeuCard className="p-5">
+          <p className="text-sm text-muted-foreground">Usuario</p>
+          <p className="font-display text-xl font-bold mt-1">
+            {user.username}
+          </p>
+        </NeuCard>
+
+        <NeuCard className="p-5">
+          <p className="text-sm text-muted-foreground">Estado</p>
+          <p className="font-display text-xl font-bold mt-1 text-primary">
+            {user.is_active ? "Activo" : "Inactivo"}
+          </p>
+        </NeuCard>
+
+        <NeuCard className="p-5">
+          <p className="text-sm text-muted-foreground">Permisos</p>
+          <p className="font-display text-xl font-bold mt-1">
+            {user.role}
+          </p>
+        </NeuCard>
+      </div>
+
+      <NeuCard className="p-6">
+        <h2 className="font-display text-xl font-bold mb-3">
+          Información de la cuenta
+        </h2>
+
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between gap-4 border-b border-border/50 pb-2">
+            <span className="text-muted-foreground">ID de usuario</span>
+            <span>{user.id}</span>
+          </div>
+
+          <div className="flex justify-between gap-4 border-b border-border/50 pb-2">
+            <span className="text-muted-foreground">Nombre completo</span>
+            <span>{user.full_name || "No indicado"}</span>
+          </div>
+
+          <div className="flex justify-between gap-4 border-b border-border/50 pb-2">
+            <span className="text-muted-foreground">Email</span>
+            <span>{user.email}</span>
+          </div>
+
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Rol</span>
+            <span>{user.role}</span>
+          </div>
+        </div>
+      </NeuCard>
+    </div>
   );
 }
