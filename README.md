@@ -1,2 +1,3 @@
-# tfg-frontend
-repository react frontend TFG
+# Welcome to your Lovable project
+
+TODO: Document your project here
