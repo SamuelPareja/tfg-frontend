@@ -89,11 +89,15 @@ export interface PredictionSummary {
 
 /**
  * Genera una predicción de quiniela.
+ *
+ * El parámetro mode permite elegir el modelo del backend:
+ * classic, ml, rf, poisson o ensemble.
  */
 export async function generatePrediction(
-  data: PredictRequest
+  data: PredictRequest,
+  mode: "classic" | "ml" | "rf" | "poisson" | "ensemble" = "ensemble"
 ): Promise<PredictResponse> {
-  const response = await fetch(API_ENDPOINTS.predict, {
+  const response = await fetch(`${API_ENDPOINTS.predict}?mode=${mode}`, {
     method: "POST",
     headers: getJsonHeaders(),
     body: JSON.stringify(data),

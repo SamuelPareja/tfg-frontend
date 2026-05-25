@@ -6,7 +6,9 @@ import { ValueSignal } from "@/components/ui/ValueSignal";
 import { ConfidenceMeter } from "@/components/ui/ConfidenceMeter";
 import { FormResult } from "@/components/ui/FormResult";
 import { matches, Match } from "@/data/mockData";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getTeams, Team } from "@/services/teamService";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 
@@ -65,6 +67,39 @@ function MatchDetail({ match }: { match: Match }) {
 export default function MatchesPage() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+  const { toast } = useToast();
+
+    /**
+   * Carga los equipos reales desde el backend.
+   *
+   * Endpoint usado:
+   * GET /api/teams
+   */
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const response = await getTeams();
+        setTeams(response.equipos_detalle);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No se pudieron cargar los equipos.";
+
+        toast({
+          title: "Error cargando equipos",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTeams(false);
+      }
+    };
+
+    loadTeams();
+  }, [toast]);
 
   const filtered = matches.filter(m =>
     m.homeTeam.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -78,6 +113,43 @@ export default function MatchesPage() {
           <h1 className="text-2xl font-display font-bold">Partidos</h1>
           <p className="text-sm text-muted-foreground">Predicciones y análisis · LaLiga · Jornada 30</p>
         </div>
+
+                <NeuCard glow="primary" className="p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 className="font-display font-bold text-lg">
+                  Equipos cargados desde MySQL
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Datos obtenidos mediante GET /api/teams
+                </p>
+              </div>
+
+              <NeuBadge variant="info">
+                {isLoadingTeams ? "Cargando..." : `${teams.length} equipos`}
+              </NeuBadge>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {isLoadingTeams ? (
+                <span className="text-sm text-muted-foreground">
+                  Cargando equipos...
+                </span>
+              ) : (
+                teams.map((team) => (
+                  <span
+                    key={team.id}
+                    className="neu-inset px-3 py-1.5 rounded-lg text-xs font-display font-semibold"
+                    title={`CSV: ${team.csv_name} · Stats: ${team.stats_name}`}
+                  >
+                    {team.name}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        </NeuCard>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-end">
