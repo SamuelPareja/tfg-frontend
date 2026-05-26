@@ -40,6 +40,12 @@ export interface AuthUser {
   is_active: boolean;
 }
 
+export interface UserStats {
+  total_predictions: number;
+  total_favorites: number;
+  last_prediction_date: string | null;
+}
+
 /**
  * Registra un usuario nuevo en el backend.
  */
@@ -79,6 +85,18 @@ export async function getCurrentUser(): Promise<AuthUser> {
   });
 
   return handleApiResponse<AuthUser>(response);
+}
+
+/**
+ * Obtiene estadísticas básicas del usuario autenticado.
+ */
+export async function getCurrentUserStats(): Promise<UserStats> {
+  const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/users/me/stats`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  return handleApiResponse<UserStats>(response);
 }
 
 /**

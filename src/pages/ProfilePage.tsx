@@ -8,12 +8,15 @@ import { NeuButton } from "@/components/ui/NeuButton";
 import { useToast } from "@/hooks/use-toast";
 import {
   AuthUser,
+  UserStats,
   getCurrentUser,
+  getCurrentUserStats,
   logoutUser,
 } from "@/services/authService";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -29,7 +32,10 @@ export default function ProfilePage() {
     const loadUser = async () => {
       try {
         const currentUser = await getCurrentUser();
+        const currentStats = await getCurrentUserStats();
+
         setUser(currentUser);
+        setStats(currentStats);
       } catch {
         toast({
           title: "Sesión no válida",
@@ -130,23 +136,25 @@ export default function ProfilePage() {
 
       <div className="grid md:grid-cols-3 gap-4">
         <NeuCard className="p-5">
-          <p className="text-sm text-muted-foreground">Usuario</p>
+          <p className="text-sm text-muted-foreground">Quinielas guardadas</p>
           <p className="font-display text-xl font-bold mt-1">
-            {user.username}
+            {stats?.total_predictions ?? 0}
           </p>
         </NeuCard>
 
         <NeuCard className="p-5">
-          <p className="text-sm text-muted-foreground">Estado</p>
+          <p className="text-sm text-muted-foreground">Favoritos</p>
           <p className="font-display text-xl font-bold mt-1 text-primary">
-            {user.is_active ? "Activo" : "Inactivo"}
+            {stats?.total_favorites ?? 0}
           </p>
         </NeuCard>
 
         <NeuCard className="p-5">
-          <p className="text-sm text-muted-foreground">Permisos</p>
-          <p className="font-display text-xl font-bold mt-1">
-            {user.role}
+          <p className="text-sm text-muted-foreground">Última quiniela</p>
+          <p className="font-display text-sm font-bold mt-1">
+            {stats?.last_prediction_date
+              ? new Date(stats.last_prediction_date).toLocaleString()
+              : "Sin quinielas"}
           </p>
         </NeuCard>
       </div>
